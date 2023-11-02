@@ -34,6 +34,11 @@ bool ClothParticle::SharesConstraint(ClothParticle* _OtherParticle)
 	return false;
 }
 
+void ClothParticle::SetPosition(FVector _Position)
+{
+	Position = _Position;
+}
+
 void ClothParticle::ApplyForce(FVector _Force)
 {
 	Acceleration += _Force / Mass;
@@ -46,7 +51,7 @@ void ClothParticle::ApplyGravity(float _DeltaTime)
 
 void ClothParticle::Update(float _DeltaTime)
 {
-	if (!FixedInPlace)
+	if (!FixedInPlace && !OnGround)
 	{
 		FVector TempPos = Position;
 		Position += (Position - OldPosition) * (1.0f - Damping) + Acceleration * _DeltaTime;
@@ -60,6 +65,24 @@ void ClothParticle::Update(float _DeltaTime)
 void ClothParticle::OffsetPosition(FVector _Offset)
 {
 	Position += _Offset;
+}
+
+void ClothParticle::SetFixedInPlace(bool _FixedInPlace)
+{
+	FixedInPlace = _FixedInPlace;
+}
+
+void ClothParticle::CheckForGroundCollision(float _GroundHeight)
+{
+	if (Position.Z <= _GroundHeight)
+	{
+		Position.Z = _GroundHeight;
+		OnGround = true;
+	}
+	else if(Position.Z > _GroundHeight + GroundStayDistance)
+	{
+		OnGround = false;
+	}
 }
 
 

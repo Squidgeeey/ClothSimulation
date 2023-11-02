@@ -44,6 +44,17 @@ void ACloth::Update()
 		for (int Horz = 0; Horz < NumHorzParticles; Horz++)
 		{
 			ClothParticles[Vert][Horz]->ApplyGravity(TimeStep);
+
+			//Apply Wind to each particle
+			if (Vert < NumVertParticles - 1 && Horz < NumHorzParticles - 1)
+			{
+				ApplyWind(ClothParticles[Vert][Horz].Get(),			//top left
+					ClothParticles[Vert][Horz + 1].Get(),			//top right
+					ClothParticles[Vert + 1][Horz].Get(),			//bot left
+					ClothParticles[Vert + 1 ][Horz + 1].Get());		//bot right
+			}
+
+
 			ClothParticles[Vert][Horz]->Update(TimeStep);
 		}
 	}
@@ -56,6 +67,8 @@ void ACloth::Update()
 			CurrentConstraint->Update(TimeStep);
 		}
 	}
+
+	CheckForGroundCollision();
 
 
 }
@@ -160,6 +173,43 @@ void ACloth::GenerateMesh()
 	ClothMesh->CreateMeshSection_LinearColor(0, ClothVertices, ClothTriangles, ClothNormals, ClothUVs, ClothColors, ClothTangents, false);
 }
 
+void ACloth::ApplyWind(ClothParticle* _TopLeft, ClothParticle* _TopRight, ClothParticle* _BotLeft, ClothParticle* _BotRight)
+{
+	FVector NormalWind = WindVector;
+	NormalWind.Normalize();
+
+	if (_TopLeft->SharesConstraint(_TopRight) && _TopLeft->SharesConstraint(_BotLeft))				//top left triangle
+	{
+		FVector SurfaceNormal = CalculateTriangleNormal(_TopLeft, _TopRight, _BotLeft);
+
+		FVector FinalWindForce = WindVector * abs(FVector::DotProduct(NormalWind, SurfaceNormal));
+		ApplyForceToTriangle(_TopLeft, _TopRight, _BotLeft, FinalWindForce);
+
+		if (_BotRight->SharesConstraint(_TopRight) && _BotRight->SharesConstraint(_BotLeft))		//bottom right triangle
+		{
+			SurfaceNormal = CalculateTriangleNormal(_BotRight, _BotLeft,  _TopRight);
+			FinalWindForce = WindVector * abs(FVector::DotProduct(NormalWind, SurfaceNormal));
+
+			ApplyForceToTriangle(_BotRight, _TopRight, _BotLeft, FinalWindForce);
+		}
+	}
+	else if (_TopLeft->SharesConstraint(_BotLeft) && _TopLeft->SharesConstraint(_BotRight))			//bottom left triangle
+	{
+		FVector SurfaceNormal = CalculateTriangleNormal(_TopLeft, _BotRight, _BotLeft);
+
+		FVector FinalWindForce = WindVector * abs(FVector::DotProduct(NormalWind, SurfaceNormal));
+		ApplyForceToTriangle(_TopLeft, _BotLeft, _BotRight, FinalWindForce);
+
+		if (_TopLeft->SharesConstraint(_TopRight) && _TopLeft->SharesConstraint(_BotRight))			//top right triangle
+		{
+			SurfaceNormal = CalculateTriangleNormal(_TopLeft, _TopRight, _BotRight);
+			FinalWindForce = WindVector * abs(FVector::DotProduct(NormalWind, SurfaceNormal));
+
+			ApplyForceToTriangle(_TopLeft, _TopRight, _BotRight, FinalWindForce);
+		}
+	}
+}
+
 void ACloth::TryCreateTriangles(ClothParticle* _TopLeft, ClothParticle* _TopRight, ClothParticle* _BottomLeft, ClothParticle* _BottomRight, int _TopLeftIndex)
 {
 	//Check if each particle shares a constraint
@@ -200,12 +250,94 @@ void ACloth::TryCreateTriangles(ClothParticle* _TopLeft, ClothParticle* _TopRigh
 
 }
 
+FVector ACloth::CalculateTriangleNormal(ClothParticle* _Particle1, ClothParticle* _Particle2, ClothParticle* _Particle3)
+{
+	FVector Vec1 = _Particle2->GetPosition() - _Particle1->GetPosition();
+	FVector Vec2 = _Particle3->GetPosition() - _Particle1->GetPosition();
+
+	FVector Normal = FVector::CrossProduct(Vec1, Vec2);
+	Normal.Normalize();
+
+	return Normal;
+}
+
+void ACloth::ApplyForceToTriangle(ClothParticle* _Particle1, ClothParticle* _Particle2, ClothParticle* _Particle3, FVector _Force)
+{
+	_Particle1->ApplyForce(_Force);
+	_Particle2->ApplyForce(_Force);
+	_Particle3->ApplyForce(_Force);
+}
+
+void ACloth::CalculateWindVector()
+{
+	WindVector = WindRotation.Vector();
+
+	//Oscillate base strength of wind
+	float Alpha = (FMath::Sin((GetGameTimeSinceCreation() * PI) / WindBaseStrengthOscillationTime) + 1) / 2;
+	float WindBaseStrength = FMath::Lerp(WinMinBaseStrength, WinMaxBaseStrength, Alpha);
+	
+	//Oscillate added wind strength
+	Alpha = (FMath::Sin((GetGameTimeSinceCreation() * PI) / WindAddedStrengthOscillationTime) + 1) / 2;
+	float WindAddedStrength = FMath::Lerp(WinMinAddedStrength, WinMaxAddedStrength, Alpha);
+
+	WindVector *= (WindBaseStrength + WindAddedStrength);
+}
+
+void ACloth::CheckForGroundCollision()
+{
+	for (int Vert = 0; Vert < NumVertParticles; Vert++)
+	{
+		for (int Horz = 0; Horz < NumHorzParticles; Horz++)
+		{
+			ClothParticles[Vert][Horz]->CheckForGroundCollision(GroundHeight - ClothMesh->GetComponentLocation().Z);
+		}
+	}
+}
+
 // Called every frame
 void ACloth::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+	CalculateWindVector();
+
 	GenerateMesh();
 
 }
+
+void ACloth::ReleaseCloth()
+{
+	for (int Horz = 0; Horz < NumHorzParticles; Horz++)
+	{
+		ClothParticles[0][Horz]->SetFixedInPlace(false);
+	}
+}
+
+void ACloth::ConstrictCloth(float _ConstrictAmount)
+{
+	float ConstrictedWidth = ClothWidth * _ConstrictAmount;
+	float ConstrictedHorzDist = ConstrictedWidth / (NumHorzParticles - 1);
+
+	FVector StartPos = { -(((NumHorzParticles - 1) * ConstrictedHorzDist) / 2), 0.0f, ((NumVertParticles - 1) * VertDist) / 2 };
+
+	for (int Horz = 0; Horz < NumHorzParticles; Horz++)
+	{
+		FVector ParticlePos = { StartPos.X + Horz * ConstrictedHorzDist, StartPos.Y, StartPos.Z };
+
+		if (ClothParticles[0][Horz]->IsFixedInPlace())
+		{
+			ClothParticles[0][Horz]->SetPosition(ParticlePos);
+		}
+	}
+}
+
+void ACloth::ResetCloth()
+{
+	ClothParticles.Empty();
+	AllConstraints.Empty();
+
+	CreateParticles();
+	CreateConstraints();
+}
+
 

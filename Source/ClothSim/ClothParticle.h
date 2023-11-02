@@ -23,6 +23,8 @@ public:
 
 	FVector GetPosition() { return Position; }
 
+	void SetPosition(FVector _Position);
+
 	//forces will be added up as acceleration to be applied for verlet integration.
 	void ApplyForce(FVector _Force);
 
@@ -35,6 +37,10 @@ public:
 
 	bool IsFixedInPlace() {return FixedInPlace; }
 
+	void SetFixedInPlace(bool _FixedInPlace);
+
+	void CheckForGroundCollision(float _GroundHeight);
+
 private:
 	TArray<TWeakPtr<ClothConstraint>> Constraints; 
 
@@ -45,5 +51,7 @@ private:
 	float Damping = 0.01f;
 
 	bool FixedInPlace = false;
+	bool OnGround = false;
+	float GroundStayDistance = 5.0f;
 
 };
