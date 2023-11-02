@@ -40,6 +40,7 @@ public:
 	void SetFixedInPlace(bool _FixedInPlace);
 
 	void CheckForGroundCollision(float _GroundHeight);
+	void CheckForSphereCollision(FVector _Location, float _Radius);
 
 private:
 	TArray<TWeakPtr<ClothConstraint>> Constraints; 

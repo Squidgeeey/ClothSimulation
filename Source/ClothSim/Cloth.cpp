@@ -2,9 +2,11 @@
 
 
 #include "Cloth.h"
+#include "ClothSphere.h"
 #include "ClothParticle.h"
 #include "ClothConstraint.h"
 #include "KismetProceduralMeshLibrary.h"
+#include "Runtime/Engine/Classes/Kismet/GameplayStatics.h"
 
 // Sets default values
 ACloth::ACloth()
@@ -25,6 +27,17 @@ void ACloth::BeginPlay()
 {
 	Super::BeginPlay();
 
+	//find all clothspheres and store in an array
+	TArray<AActor*> FoundActors;
+	UGameplayStatics::GetAllActorsOfClass(GetWorld(), AClothSphere::StaticClass(), FoundActors);
+
+	for (AActor* ThisActor : FoundActors)
+	{
+		if (AClothSphere* FoundSphere = Cast<AClothSphere>(ThisActor))
+		{
+			ClothSpheres.Add(FoundSphere);
+		}
+	}
 
 	ClothMesh->SetMaterial(0, ClothMaterial);
 
@@ -68,7 +81,7 @@ void ACloth::Update()
 		}
 	}
 
-	CheckForGroundCollision();
+	CheckForCollision();
 
 
 }
@@ -283,13 +296,20 @@ void ACloth::CalculateWindVector()
 	WindVector *= (WindBaseStrength + WindAddedStrength);
 }
 
-void ACloth::CheckForGroundCollision()
+void ACloth::CheckForCollision()
 {
 	for (int Vert = 0; Vert < NumVertParticles; Vert++)
 	{
 		for (int Horz = 0; Horz < NumHorzParticles; Horz++)
 		{
 			ClothParticles[Vert][Horz]->CheckForGroundCollision(GroundHeight - ClothMesh->GetComponentLocation().Z);
+
+			for (AClothSphere* FoundSphere : ClothSpheres)
+			{
+
+
+				ClothParticles[Vert][Horz]->CheckForSphereCollision(FoundSphere->GetActorLocation() - ClothMesh->GetComponentLocation(), FoundSphere->GetRadius());
+			}
 		}
 	}
 }

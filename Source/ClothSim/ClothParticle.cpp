@@ -85,4 +85,18 @@ void ClothParticle::CheckForGroundCollision(float _GroundHeight)
 	}
 }
 
+void ClothParticle::CheckForSphereCollision(FVector _Location, float _Radius)
+{
+	FVector VecFromSphere = Position - _Location;
+	float DistanceFromSphereCenter = VecFromSphere.Length();
+
+	if (DistanceFromSphereCenter < _Radius)
+	{
+		//found collision with sphere
+		VecFromSphere.Normalize();
+		VecFromSphere *= _Radius - DistanceFromSphereCenter + 2;
+		OffsetPosition(VecFromSphere);
+	}
+}
+
 

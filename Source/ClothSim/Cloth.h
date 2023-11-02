@@ -45,7 +45,7 @@ protected:
 
 	void CalculateWindVector();
 
-	void CheckForGroundCollision();
+	void CheckForCollision();
 
 	//Properties
 
@@ -55,6 +55,9 @@ protected:
 
 	//Constraints between the particles
 	TArray<TSharedPtr<ClothConstraint>> AllConstraints;
+
+	UPROPERTY()
+		TArray<class AClothSphere*> ClothSpheres;
 
 	//Root scene component
 	UPROPERTY();
