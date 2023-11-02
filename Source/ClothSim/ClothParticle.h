@@ -12,7 +12,7 @@ class ClothConstraint;
 class CLOTHSIM_API ClothParticle
 {
 public:
-	ClothParticle(FVector _Position);
+	ClothParticle(FVector _Position, bool _FixedInPlace = false);
 	~ClothParticle();
 
 	void AddConstraint(TSharedPtr<ClothConstraint> _ClothConstraint);
@@ -23,6 +23,18 @@ public:
 
 	FVector GetPosition() { return Position; }
 
+	//forces will be added up as acceleration to be applied for verlet integration.
+	void ApplyForce(FVector _Force);
+
+	void ApplyGravity(float _DeltaTime);
+
+	//Do some verlet integration to move particle
+	void Update(float _DeltaTime);
+
+	void OffsetPosition(FVector _Offset);
+
+	bool IsFixedInPlace() {return FixedInPlace; }
+
 private:
 	TArray<TWeakPtr<ClothConstraint>> Constraints; 
 
@@ -31,5 +43,7 @@ private:
 	FVector Acceleration = { 0.0f, 0.0f, 0.0f };
 	float Mass = 1.0f;
 	float Damping = 0.01f;
+
+	bool FixedInPlace = false;
 
 };

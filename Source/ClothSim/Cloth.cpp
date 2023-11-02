@@ -30,7 +30,34 @@ void ACloth::BeginPlay()
 
 	CreateParticles();
 	CreateConstraints();
+
+	//create looping timer to simulate cloth
+	GetWorldTimerManager().SetTimer(SimulationTimer, this, &ACloth::Update, TimeStep, true, 0.0f);
 	
+}
+
+void ACloth::Update()
+{
+	//Update all particles
+	for (int Vert = 0; Vert < NumVertParticles; Vert++)
+	{
+		for (int Horz = 0; Horz < NumHorzParticles; Horz++)
+		{
+			ClothParticles[Vert][Horz]->ApplyGravity(TimeStep);
+			ClothParticles[Vert][Horz]->Update(TimeStep);
+		}
+	}
+
+
+	for (int i = 0; i < ConstraintIterations; i++)
+	{
+		for (auto CurrentConstraint : AllConstraints)
+		{
+			CurrentConstraint->Update(TimeStep);
+		}
+	}
+
+
 }
 
 void ACloth::CreateParticles()
@@ -44,13 +71,16 @@ void ACloth::CreateParticles()
 	for (int Vert = 0; Vert < NumVertParticles; Vert++)
 	{
 		TArray<TSharedPtr<ClothParticle>> ParticleRow;
-		for (int Horz = 0; Horz < NumVertParticles; Horz++)
+		for (int Horz = 0; Horz < NumHorzParticles; Horz++)
 		{
 			FVector ParticlePos = { StartPos.X + Horz * HorzDist, StartPos.Y, StartPos.Z - Vert * VertDist };
 
+			bool FixedInPlace = false;
+			
+			FixedInPlace = (Vert == 0 && (Horz == 0 || Horz == NumHorzParticles - 1 || Horz % 6 == 0));
 
 			//create new particle at position
-			TSharedPtr<ClothParticle> NewParticle(new ClothParticle(ParticlePos));
+			TSharedPtr<ClothParticle> NewParticle(new ClothParticle(ParticlePos, FixedInPlace));
 
 			//add particle to row
 			ParticleRow.Add(NewParticle);
@@ -64,7 +94,7 @@ void ACloth::CreateConstraints()
 {
 	for (int Vert = 0; Vert < NumVertParticles; Vert++)
 	{
-		for (int Horz = 0; Horz < NumVertParticles; Horz++)
+		for (int Horz = 0; Horz < NumHorzParticles; Horz++)
 		{
 			if (Vert < NumVertParticles - 1)
 			{

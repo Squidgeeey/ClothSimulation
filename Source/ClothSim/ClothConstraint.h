@@ -15,6 +15,11 @@ public:
 	ClothConstraint(TSharedPtr<ClothParticle> _ParticleA, TSharedPtr<ClothParticle> _ParticleB);
 	~ClothConstraint();
 
+	//try to constrain the two particles together
+	void Update(float _DeltaTime);
+
+
+
 private:
 
 	TWeakPtr<ClothParticle> ParticleA;

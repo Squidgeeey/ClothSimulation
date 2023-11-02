@@ -23,6 +23,9 @@ protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
+	//run repeatedly on timer
+	void Update();
+
 	//called in BeginPlay to create the cloth;
 	void CreateParticles();
 	void CreateConstraints();
@@ -70,6 +73,10 @@ protected:
 	float HorzDist;						//distance between each particle (calculated ahead of time)
 	float VertDist;
 
+	//simulation properties:
+	FTimerHandle SimulationTimer;
+	float TimeStep = 0.016f; //60 times per sec
+	int ConstraintIterations = 3;	//num of times to iterate simulation each timestep
 
 public:	
 	// Called every frame
