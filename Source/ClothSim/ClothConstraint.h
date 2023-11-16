@@ -18,6 +18,10 @@ public:
 	//try to constrain the two particles together
 	void Update(float _DeltaTime);
 
+	void SetInterwoven(bool _isInterwoven);
+
+	bool GetIsInterwoven() { return Interwoven; }
+
 
 
 private:
@@ -26,5 +30,7 @@ private:
 	TWeakPtr<ClothParticle> ParticleB;
 
 	float RestingDistance = 10.0f;
+
+	bool Interwoven = false;
 
 };

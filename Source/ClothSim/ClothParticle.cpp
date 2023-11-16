@@ -2,6 +2,7 @@
 
 
 #include "ClothParticle.h"
+#include "ClothConstraint.h"
 
 
 
@@ -23,9 +24,9 @@ void ClothParticle::AddConstraint(TSharedPtr<ClothConstraint> _ClothConstraint)
 
 bool ClothParticle::SharesConstraint(ClothParticle* _OtherParticle)
 {
-	for (auto Iter : _OtherParticle->GetConstraints())
+	for (TWeakPtr<ClothConstraint> Iter : _OtherParticle->GetConstraints())
 	{
-		if (Constraints.Contains(Iter))
+		if (Constraints.Contains(Iter) && !Iter.Pin()->GetIsInterwoven())
 		{
 			return true;
 		}
@@ -94,7 +95,7 @@ void ClothParticle::CheckForSphereCollision(FVector _Location, float _Radius)
 	{
 		//found collision with sphere
 		VecFromSphere.Normalize();
-		VecFromSphere *= _Radius - DistanceFromSphereCenter + 2;
+		VecFromSphere *= _Radius - DistanceFromSphereCenter + 3;
 		OffsetPosition(VecFromSphere);
 	}
 }

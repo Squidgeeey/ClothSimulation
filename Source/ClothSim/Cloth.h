@@ -47,6 +47,8 @@ protected:
 
 	void CheckForCollision();
 
+	void SetClothOnHUD();
+
 	//Properties
 
 	
@@ -58,6 +60,10 @@ protected:
 
 	UPROPERTY()
 		TArray<class AClothSphere*> ClothSpheres;
+
+
+	UPROPERTY()
+		class AClothHUD* HUD = nullptr
 
 	//Root scene component
 	UPROPERTY();
@@ -93,6 +99,8 @@ protected:
 	float TimeStep = 0.016f; //60 times per sec
 	int ConstraintIterations = 3;	//num of times to iterate simulation each timestep
 
+	bool ShouldSimulateInterwovenConstraints = true;
+
 	//Wind properties
 	UPROPERTY(BlueprintReadOnly, Category = Wind);
 	FVector WindVector = { 0.0f, 30.0f, 0.0f };
@@ -115,6 +123,8 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = Wind);
 	float WindAddedStrengthOscillationTime = 5.0f;
 
+	float WindMultiplier = 1.0f;
+
 	//Collision
 	UPROPERTY(EditDefaultsOnly, Category = Collision);
 	float GroundHeight = 0.0f;
@@ -126,11 +136,25 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void ReleaseCloth();
 
-//change the spread of cloth hooks, constrict amount is a multiplier on the cloth width (0 to 1 value)
+//change the spread of cloth hooks, constrict amount is a multiplier on the cloth Fwidth (0 to 1 value)
 	UFUNCTION(BlueprintCallable)
 		void ConstrictCloth(float _ConstrictAmount);
 
 	UFUNCTION(BlueprintCallable)
 		void ResetCloth();
+
+	UFUNCTION(BlueprintCallable)
+		void SetSphereScale(float _Scale);
+
+	UFUNCTION(BlueprintCallable)
+		void SetSimulateInterwovenConstraints(bool _Simulate);
+	UFUNCTION(BlueprintCallable)
+		void SetWindYaw(float _Yaw);
+
+	UFUNCTION(BlueprintCallable)
+		void SetWindPitch(float _Pitch);
+
+	UFUNCTION(BlueprintCallable)
+		void SetWindStrength(float _Strength);
 
 };

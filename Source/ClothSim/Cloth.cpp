@@ -7,6 +7,7 @@
 #include "ClothConstraint.h"
 #include "KismetProceduralMeshLibrary.h"
 #include "Runtime/Engine/Classes/Kismet/GameplayStatics.h"
+#include "ClothHUD.h"
 
 // Sets default values
 ACloth::ACloth()
@@ -27,6 +28,10 @@ void ACloth::BeginPlay()
 {
 	Super::BeginPlay();
 
+	//send cloth to hud
+
+	
+
 	//find all clothspheres and store in an array
 	TArray<AActor*> FoundActors;
 	UGameplayStatics::GetAllActorsOfClass(GetWorld(), AClothSphere::StaticClass(), FoundActors);
@@ -46,6 +51,8 @@ void ACloth::BeginPlay()
 
 	//create looping timer to simulate cloth
 	GetWorldTimerManager().SetTimer(SimulationTimer, this, &ACloth::Update, TimeStep, true, 0.0f);
+
+	GetWorldTimerManager().SetTimerForNextTick(this, &ACloth::SetClothOnHUD);
 	
 }
 
@@ -77,6 +84,11 @@ void ACloth::Update()
 	{
 		for (auto CurrentConstraint : AllConstraints)
 		{
+
+			if (CurrentConstraint->GetIsInterwoven() && !ShouldSimulateInterwovenConstraints)
+			{
+				continue;
+			}
 			CurrentConstraint->Update(TimeStep);
 		}
 	}
@@ -130,6 +142,19 @@ void ACloth::CreateConstraints()
 				AllConstraints.Add(NewConstraint);
 				ClothParticles[Vert][Horz]->AddConstraint(NewConstraint);
 				ClothParticles[Vert + 1][Horz]->AddConstraint(NewConstraint);
+
+				
+			}
+
+			if (Vert < NumVertParticles - 2)
+			{
+				//Make a verticle interwoven Constraint
+				TSharedPtr<ClothConstraint> NewInterwovenConstraint(new ClothConstraint(ClothParticles[Vert][Horz], ClothParticles[Vert + 2][Horz])); 
+				NewInterwovenConstraint->SetInterwoven(true);
+
+				AllConstraints.Add(NewInterwovenConstraint);
+				ClothParticles[Vert][Horz]->AddConstraint(NewInterwovenConstraint);
+				ClothParticles[Vert + 2][Horz]->AddConstraint(NewInterwovenConstraint);
 			}
 
 			if (Horz < NumHorzParticles - 1)
@@ -140,6 +165,17 @@ void ACloth::CreateConstraints()
 				AllConstraints.Add(NewConstraint);
 				ClothParticles[Vert][Horz]->AddConstraint(NewConstraint);
 				ClothParticles[Vert][Horz + 1]->AddConstraint(NewConstraint);
+			}
+
+			if (Horz < NumHorzParticles - 2)
+			{
+				//Make a horz interwoven Constraint
+				TSharedPtr<ClothConstraint> NewInterwovenConstraint(new ClothConstraint(ClothParticles[Vert][Horz], ClothParticles[Vert][Horz + 2]));
+				NewInterwovenConstraint->SetInterwoven(true);
+
+				AllConstraints.Add(NewInterwovenConstraint);
+				ClothParticles[Vert][Horz]->AddConstraint(NewInterwovenConstraint);
+				ClothParticles[Vert][Horz + 2]->AddConstraint(NewInterwovenConstraint);
 			}
 		}
 	}
@@ -293,7 +329,7 @@ void ACloth::CalculateWindVector()
 	Alpha = (FMath::Sin((GetGameTimeSinceCreation() * PI) / WindAddedStrengthOscillationTime) + 1) / 2;
 	float WindAddedStrength = FMath::Lerp(WinMinAddedStrength, WinMaxAddedStrength, Alpha);
 
-	WindVector *= (WindBaseStrength + WindAddedStrength);
+	WindVector *= (WindBaseStrength + WindAddedStrength) * WindMultiplier;
 }
 
 void ACloth::CheckForCollision()
@@ -312,6 +348,20 @@ void ACloth::CheckForCollision()
 			}
 		}
 	}
+}
+
+void ACloth::SetClothOnHUD()
+{
+	APlayerController* FoundController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
+	if (FoundController)
+	{
+		if (AClothHUD* FoundHUD = Cast<AClothHUD>(FoundController->GetHUD()))
+		{
+			HUD = FoundHUD;
+			FoundHUD->SetClothonWidgets(this);
+		}
+	}
+
 }
 
 // Called every frame
@@ -358,6 +408,34 @@ void ACloth::ResetCloth()
 
 	CreateParticles();
 	CreateConstraints();
+}
+
+void ACloth::SetSphereScale(float _Scale)
+{
+	for (AClothSphere* FoundSphere : ClothSpheres)
+	{
+		FoundSphere->SetRadius(_Scale);
+	}
+}
+
+void ACloth::SetSimulateInterwovenConstraints(bool _Simulate)
+{
+	ShouldSimulateInterwovenConstraints = _Simulate;
+}
+
+void ACloth::SetWindYaw(float _Yaw)
+{
+	WindRotation.Yaw = _Yaw;
+}
+
+void ACloth::SetWindPitch(float _Pitch)
+{
+	WindRotation.Pitch = _Pitch;
+}
+
+void ACloth::SetWindStrength(float _Strength)
+{
+	WindMultiplier = _Strength;
 }
 
 

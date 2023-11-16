@@ -39,3 +39,8 @@ void ClothConstraint::Update(float _DeltaTime)
 
 
 }
+
+void ClothConstraint::SetInterwoven(bool _isInterwoven)
+{
+	Interwoven = _isInterwoven;
+}

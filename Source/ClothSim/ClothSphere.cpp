@@ -26,7 +26,13 @@ void AClothSphere::BeginPlay()
 void AClothSphere::RescaleMesh()
 {
 	
-	StaticMesh->SetRelativeScale3D(FVector(Radius / 90));
+	StaticMesh->SetRelativeScale3D(FVector((Radius / 100) * 1.1f));
 	
+}
+
+void AClothSphere::SetRadius(float _Radius)
+{
+	Radius = _Radius;
+	RescaleMesh();
 }
 

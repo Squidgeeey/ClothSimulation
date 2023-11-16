@@ -31,4 +31,6 @@ public:
 
 	float GetRadius() { return Radius; }
 
+	void SetRadius(float _Radius);
+
 };
